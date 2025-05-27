@@ -36,3 +36,12 @@ class ConfigManager:
     def set(self, key: str, value):
         self.config_data[key] = value
         self.save_config()
+
+    
+    def show_config(self):
+        if self.config_data:
+            print("Current configuration:")
+            for key, value in self.config_data.items():
+                print(f"  {key}: {value}")
+        else:
+            print("No configuration found.") 
