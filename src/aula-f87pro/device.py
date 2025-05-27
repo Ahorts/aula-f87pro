@@ -1,3 +1,10 @@
+import hid
+import time
+import json
+import os
+from typing import Optional
+from config import ConfigManager
+
 class AulaF87Pro:
     VENDOR_ID = 0x258a
     PRODUCT_ID = 0x010c
@@ -5,7 +12,47 @@ class AulaF87Pro:
     def __init__(self):
         self.device = None
         self.device_path = None
+        self.num_leds = 102
+        self.config_manager = ConfigManager(os.path.expanduser("~/.aula_f87_config.json"))
     
+    def find_working_interface(self) -> Optional[str]:
+        print("Searching for working RGB interface...")
+        
+        devices = hid.enumerate(self.VENDOR_ID, self.PRODUCT_ID)
+        
+        for i, dev_info in enumerate(devices):
+            try:
+                print(f"Testing interface {i}")
+                print(f"  Path: {dev_info['path']}")
+                print(f"  Interface: {dev_info.get('interface_number', 'N/A')}")
+                
+                temp_device = hid.device()
+                temp_device.open_path(dev_info['path'])
+                
+                # Test packet sent
+                packet = [0x06, 0x08, 0x00, 0x00, 0x01, 0x00, 0x7a, 0x01]
+                test_data = [255, 0, 0] * 10 + [0, 0, 0] * (self.num_leds - 10)
+                packet.extend(test_data)
+                packet.extend([0] * (520 - len(packet)))
+                
+                print(f"  Sending test packet ({len(packet)} bytes)...")
+                temp_device.send_feature_report(packet)
+                temp_device.close()
+                
+                print(f"  Interface {i} works! Saving configuration...")
+                self.config_manager.set('device_path', dev_info['path'].decode('utf-8') if isinstance(dev_info['path'], bytes) else dev_info['path'])
+                self.config_manager.set('vendor_id', self.VENDOR_ID)
+                self.config_manager.set('product_id', self.PRODUCT_ID)
+                self.config_manager.set('saved_at', time.time())
+                
+                return dev_info['path']
+                
+            except Exception as e:
+                print(f"  Interface {i} failed: {e}")
+        
+        print("No working interface found!")
+        return None
+
     def connect(self, device_path: str) -> bool:
         try:
             import hid
