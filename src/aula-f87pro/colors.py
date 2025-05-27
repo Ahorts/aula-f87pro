@@ -57,4 +57,27 @@ def predefined_colors() -> Dict[str, Tuple[int, int, int]]:
         "yellow": (255, 255, 0),
         "cyan": (0, 255, 255),
         "magenta": (255, 0, 255),
+        "orange": (255, 165, 0),
+        "purple": (128, 0, 128),
+        "pink": (255, 192, 203),
+        "brown": (139, 69, 19),
     }
+
+def get_color_by_name(name: str):
+    colors = predefined_colors()
+    return colors.get(name.lower())
+
+def parse_color_input(color_input: str) -> Tuple[int, int, int]:
+    color_input = color_input.strip()
+    
+    if color_input.startswith('#') or re.match(r'^[0-9a-fA-F]{6}$', color_input):
+        return hex_to_rgb(color_input)
+    
+    if ',' in color_input:
+        return parse_rgb_string(color_input)
+    
+    color = get_color_by_name(color_input)
+    if color:
+        return color
+    
+    raise ValueError(f"Invalid color format: {color_input}")
