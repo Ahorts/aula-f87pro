@@ -53,6 +53,33 @@ class AulaF87Pro:
         print("No working interface found!")
         return None
 
+    def verify_saved_interface(self, device_path: str) -> bool:
+        try:
+            print("Verifying saved interface...")
+            
+            if isinstance(device_path, str):
+                device_path_bytes = device_path.encode('utf-8')
+            else:
+                device_path_bytes = device_path
+            
+            temp_device = hid.device()
+            temp_device.open_path(device_path_bytes)
+            
+            # Test packet
+            packet = [0x06, 0x08, 0x00, 0x00, 0x01, 0x00, 0x7a, 0x01]
+            packet.extend([0] * (self.num_leds * 3))
+            packet.extend([0] * (520 - len(packet)))
+            
+            temp_device.send_feature_report(packet)
+            temp_device.close()
+            
+            print("Saved interface verified!")
+            return True
+            
+        except Exception as e:
+            print(f"Saved interface no longer works: {e}")
+            return False
+
     def connect(self, device_path: str) -> bool:
         try:
             import hid
