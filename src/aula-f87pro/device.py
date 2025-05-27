@@ -43,4 +43,10 @@ class AulaF87Pro:
             return False
         
     
-    
+    def hex_to_rgb(self, hex_color: str) -> list:
+        hex_color = hex_color.lstrip('#')
+        return [int(hex_color[i:i + 2], 16) for i in (0, 2, 4)]
+
+    def rgb_to_hex(self, rgb_color: list) -> str:
+        return '#{:02x}{:02x}{:02x}'.format(*rgb_color)
+
