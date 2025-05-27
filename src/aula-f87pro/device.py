@@ -139,11 +139,25 @@ class AulaF87Pro:
             print(f"Failed to send RGB data packet: {e}")
             return False
         
+    def set_solid_color(self, r: int, g: int, b: int) -> bool:
+        rgb_data = []
+        for i in range(self.num_leds):
+            rgb_data.extend([r, g, b])
+        
+        return self.send_rgb(rgb_data)
+        
     
-    def hex_to_rgb(self, hex_color: str) -> list:
-        hex_color = hex_color.lstrip('#')
-        return [int(hex_color[i:i + 2], 16) for i in (0, 2, 4)]
-
-    def rgb_to_hex(self, rgb_color: list) -> str:
-        return '#{:02x}{:02x}{:02x}'.format(*rgb_color)
-
+    def breathing_effect(self, r: int, g: int, b: int, duration: float = 10.0):
+        import math
+        
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            t = time.time() - start_time
+            brightness = (math.sin(t * 2) + 1) / 2
+            
+            current_r = int(r * brightness)
+            current_g = int(g * brightness)
+            current_b = int(b * brightness)
+            
+            self.set_solid_color(current_r, current_g, current_b)
+            time.sleep(0.05)
