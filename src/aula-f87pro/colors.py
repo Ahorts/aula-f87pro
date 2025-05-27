@@ -28,6 +28,22 @@ def rgb_to_hex(rgb_color: Tuple[int, int, int]) -> str:
     
     return '#{:02x}{:02x}{:02x}'.format(*rgb_color)
 
+
+def parse_rgb_string(rgb_string: str) -> Tuple[int, int, int]:
+    try:
+        values = [int(x.strip()) for x in rgb_string.split(',')]
+        if len(values) != 3:
+            raise ValueError("RGB string must have exactly 3 values")
+        
+        for value in values:
+            if not 0 <= value <= 255:
+                raise ValueError(f"RGB value {value} out of range 0-255")
+        
+        return (values[0], values[1], values[2])
+    except ValueError as e:
+        raise ValueError(f"Invalid RGB string '{rgb_string}': {e}")
+    
+    
 def validate_rgb(rgb_color: Tuple[int, int, int]) -> bool:
     return all(0 <= c <= 255 for c in rgb_color)    
 
