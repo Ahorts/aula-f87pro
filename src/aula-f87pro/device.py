@@ -80,17 +80,32 @@ class AulaF87Pro:
             print(f"Saved interface no longer works: {e}")
             return False
 
-    def connect(self, device_path: str) -> bool:
-        try:
-            import hid
-            self.device = hid.device()
-            self.device.open_path(device_path)
-            self.device_path = device_path
-            
-            return True
+    def connect(self, force_find: bool = False) -> bool:
         
+        if not force_find and not self.device_path:
+            saved_path = self.config_manager.get('device_path')
+            if saved_path and self.verify_saved_interface(saved_path):
+                self.device_path = saved_path
+        
+        if force_find or not self.device_path:
+            self.device_path = self.find_working_interface()
+            if not self.device_path:
+                return False
+        
+        try:
+            self.device = hid.device()
+            
+            if isinstance(self.device_path, str):
+                device_path_bytes = self.device_path.encode('utf-8')
+            else:
+                device_path_bytes = self.device_path
+                
+            self.device.open_path(device_path_bytes)
+            
+            print(f"Connected using path: {self.device_path}")
+            return True
         except Exception as e:
-            print(f"Failed to connect to device: {e}")
+            print(f"Failed to connect to working interface: {e}")
             return False
         
     def disconnect(self):
