@@ -121,6 +121,14 @@ class AulaF87Pro:
         
         try:
             packet = [0x06, 0x08, 0x00, 0x00, 0x01, 0x00, 0x7A, 0x01]
+            
+            if len(rgb_data) != self.num_leds * 3:
+                if len(rgb_data) < self.num_leds * 3:
+                    rgb_data.extend([0] * (self.num_leds * 3 - len(rgb_data)))
+                else:
+                    rgb_data = rgb_data[:self.num_leds * 3]
+                    
+                    
             packet.extend(rgb_data)
             packet.extend([0] * (520 - len(packet)))
 
