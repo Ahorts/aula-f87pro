@@ -161,3 +161,24 @@ class AulaF87Pro:
             
             self.set_solid_color(current_r, current_g, current_b)
             time.sleep(0.05)
+
+    def test_sequence(self):
+        print("Running test sequence...")
+        
+        print("Red...")
+        self.set_solid_color(255, 0, 0)
+        time.sleep(1)
+        
+        print("Green...")
+        self.set_solid_color(0, 255, 0)
+        time.sleep(1)
+        
+        print("Blue...")
+        self.set_solid_color(0, 0, 255)
+        time.sleep(1)
+        
+        print("Off...")
+        self.set_solid_color(0, 0, 0)
+
+    def turn_off(self):
+        return self.set_solid_color(0, 0, 0)
