@@ -3,7 +3,7 @@ import time
 import json
 import os
 from typing import Optional
-from config import ConfigManager
+from .config import ConfigManager
 
 class AulaF87Pro:
     VENDOR_ID = 0x258a
@@ -21,34 +21,63 @@ class AulaF87Pro:
         devices = hid.enumerate(self.VENDOR_ID, self.PRODUCT_ID)
         
         for i, dev_info in enumerate(devices):
+            # Skip interface 0 - it's always the keyboard input interface
+            if i == 0:
+                print(f"Skipping interface {i} (keyboard input interface)")
+                continue
+                
             try:
                 print(f"Testing interface {i}")
                 print(f"  Path: {dev_info['path']}")
                 print(f"  Interface: {dev_info.get('interface_number', 'N/A')}")
+                print(f"  Usage Page: {hex(dev_info.get('usage_page', 0))}")
+                print(f"  Usage: {hex(dev_info.get('usage', 0))}")
                 
                 temp_device = hid.device()
                 temp_device.open_path(dev_info['path'])
                 
-                # Test packet sent
                 packet = [0x06, 0x08, 0x00, 0x00, 0x01, 0x00, 0x7a, 0x01]
+                
+                # Red data for first 10 LEDs, off for rest
                 test_data = [255, 0, 0] * 10 + [0, 0, 0] * (self.num_leds - 10)
                 packet.extend(test_data)
                 packet.extend([0] * (520 - len(packet)))
                 
                 print(f"  Sending test packet ({len(packet)} bytes)...")
-                temp_device.send_feature_report(packet)
+                
+                try:
+                    result = temp_device.send_feature_report(packet)
+                    print(f"  Feature report result: {result}")
+                    
+                    time.sleep(0.5)
+                    
+                    response = input(f"  Did you see red lights on interface {i}? (y/n): ").lower().strip()
+                    
+                    if response == 'y' or response == 'yes':
+                        print(f"Interface {i} works! Saving configuration...")
+                        
+                        clear_packet = packet.copy()
+                        clear_packet[8:8 + self.num_leds * 3] = [0] * (self.num_leds * 3)
+                        temp_device.send_feature_report(clear_packet)
+                        
+                        temp_device.close()
+                        
+                        self.config_manager.set('device_path', dev_info['path'].decode('utf-8') if isinstance(dev_info['path'], bytes) else dev_info['path'])
+                        self.config_manager.set('vendor_id', self.VENDOR_ID)
+                        self.config_manager.set('product_id', self.PRODUCT_ID)
+                        self.config_manager.set('saved_at', time.time())
+                        
+                        return dev_info['path']
+                    else:
+                        print(f"  Interface {i} doesn't control RGB lighting")
+                        
+                except Exception as e:
+                    print(f"  Feature report failed: {e}")
+                
                 temp_device.close()
                 
-                print(f"  Interface {i} works! Saving configuration...")
-                self.config_manager.set('device_path', dev_info['path'].decode('utf-8') if isinstance(dev_info['path'], bytes) else dev_info['path'])
-                self.config_manager.set('vendor_id', self.VENDOR_ID)
-                self.config_manager.set('product_id', self.PRODUCT_ID)
-                self.config_manager.set('saved_at', time.time())
-                
-                return dev_info['path']
-                
             except Exception as e:
-                print(f"  Interface {i} failed: {e}")
+                print(f"  Interface {i} failed to open: {e}")
         
         print("No working interface found!")
         return None
@@ -150,6 +179,24 @@ class AulaF87Pro:
     def breathing_effect(self, r: int, g: int, b: int, duration: float = 10.0):
         import math
         
+        if duration == 0:
+            try:
+                start_time = time.time()
+                while True:
+                    t = time.time() - start_time
+                    brightness = (math.sin(t * 2) + 1) / 2
+                
+                    current_r = int(r * brightness)
+                    current_g = int(g * brightness)
+                    current_b = int(b * brightness)
+                
+                    self.set_solid_color(current_r, current_g, current_b)
+                    time.sleep(0.05)
+            except KeyboardInterrupt:
+                self.turn_off()
+                raise
+                
+            
         start_time = time.time()
         while time.time() - start_time < duration:
             t = time.time() - start_time
