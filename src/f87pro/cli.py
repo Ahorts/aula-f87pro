@@ -74,6 +74,7 @@ def main():
     
     if not keyboard.connect(force_find=args.force_find):
         print("Failed to connect to keyboard.")
+        print("\nYou need to run with Sudo or setup udev rules\n")
         print("Try running with --find-interface first to identify the working interface.")
         return 1
     
