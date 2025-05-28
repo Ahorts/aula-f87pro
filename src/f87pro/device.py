@@ -1,6 +1,5 @@
 import hid
 import time
-import json
 import os
 from typing import Optional
 from .config import ConfigManager
