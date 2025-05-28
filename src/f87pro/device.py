@@ -188,6 +188,7 @@ class AulaF87Pro:
         if duration == 0.0: 
             try:
                 while True:
+                    self.send_rgb(rgb_data_initial)
                     time.sleep(1) 
             except KeyboardInterrupt:
                 print("\nDevice: Solid color effect interrupted by user.")
@@ -195,7 +196,15 @@ class AulaF87Pro:
                 raise 
         else: #
             try:
-                time.sleep(duration)
+                start_time = time.time()
+                current_elapsed_time = 0
+                
+
+                while current_elapsed_time < duration:
+                    current_elapsed_time = time.time() - start_time
+                    self.send_rgb(rgb_data_initial)
+                    time.sleep(1)
+                
                 print(f"Device: Solid color duration ({duration}s) ended.")
                 self.turn_off()
             except KeyboardInterrupt:

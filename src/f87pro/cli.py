@@ -95,7 +95,7 @@ def main():
             try:
                 r, g, b = parse_color_input(args.color)
                 print(f"Setting solid color: RGB({r}, {g}, {b})")
-                if keyboard.set_solid_color(r, g, b):
+                if keyboard.set_solid_color(r, g, b, args.duration):
                     print("Color set successfully.")
                 else:
                     print("Failed to set color.")
