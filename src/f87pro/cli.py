@@ -1,7 +1,7 @@
 import argparse
 import sys
-from device import AulaF87Pro
-from colors import parse_color_input, predefined_colors
+from .device import AulaF87Pro
+from .colors import parse_color_input, predefined_colors
 
 def create_parser():
     parser = argparse.ArgumentParser(
