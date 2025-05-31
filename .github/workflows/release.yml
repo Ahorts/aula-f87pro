@@ -1,0 +1,46 @@
+name: Create Release from Changelog
+
+on:
+  push:
+    tags:
+      - 'v*' 
+
+jobs:
+  build_release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare version string for changelog
+        id: prep_version
+        run: |
+          RAW_TAG="${{ github.ref_name }}"
+          # Remove 'v' prefix if it exists
+          if [[ "${RAW_TAG}" == v* ]]; then
+            VERSION_FOR_CHANGELOG="${RAW_TAG:1}"
+          else
+            VERSION_FOR_CHANGELOG="${RAW_TAG}"
+          fi
+          echo "version_no_prefix=${VERSION_FOR_CHANGELOG}" >> $GITHUB_OUTPUT
+          echo "Using version for changelog lookup: ${VERSION_FOR_CHANGELOG}"
+
+      - name: Get Changelog Entry
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.prep_version.outputs.version_no_prefix }} # Use the explicitly stripped version
+          path: ./CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog_reader.outputs.changes }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
