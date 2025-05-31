@@ -1,0 +1,30 @@
+# filepath: /home/Ahorts/Documents/Projects/aula-f87pro/pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aula-f87pro-cli"
+version = "0.1.0"
+authors = [
+    { name = "Ahorts", email = "godswayahorts@gmail.com" },
+]
+description = "A CLI tool to control Aula F87 Pro keyboard RGB lighting."
+readme = "README.md" 
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", 
+    "Operating System :: Linux",
+    "Environment :: Console",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "hidapi", 
+]
+
+[project.scripts]
+aula-f87pro = "f87pro.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/Ahorts/aula-f87pro" # Optional
