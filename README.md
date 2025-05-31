@@ -54,6 +54,51 @@ A command-line interface (CLI) tool to control the RGB lighting of the Aula F87 
     pip install -e .
     ```
 
+### Alternative Installation for Global Access
+
+If you intend to call `aula-f87pro` from other scripts or want it available globally without activating a virtual environment:
+
+*   **Using `pipx` (Recommended for user-level global tools):**
+
+    1.  **Install `pipx`:**
+        *   On many systems, especially those that manage Python packages strictly (like Arch Linux, recent Debian/Ubuntu versions), you should install `pipx` using your system's package manager to avoid "externally managed environment" errors.
+
+            *   For Arch Linux:
+
+                ```bash
+                sudo pacman -S python-pipx
+                ```
+
+            *   For Debian/Ubuntu (if available in repositories, check your version):
+                ```bash
+                sudo apt install pipx
+                ```
+
+            *   If your distribution doesn't package `pipx` or the above methods don't work, you might try the official bootstrap method, but prefer your system package manager if possible:
+
+                ```bash
+                python3 -m pip install --user pipx
+                ```
+
+        *   After installing `pipx`, ensure its scripts directory is in your PATH:
+            ```bash
+            python3 -m pipx ensurepath
+            ```
+            You may need to open a new terminal or re-login for this change to take effect.
+    2.  **Install `aula-f87pro` with `pipx`:**
+        From the `aula-f87pro` project directory:
+        ```bash
+        pipx install .
+        ```
+        This installs `aula-f87pro` in an isolated environment but makes the command available in your user's PATH.
+
+*   **System-Wide Installation (Use with caution):**
+    ```bash
+    sudo pip install .
+    ```
+    This makes `aula-f87pro` available to all users but installs it into the system Python environment. This is generally discouraged on systems with "externally managed" Python environments as it might conflict with the system package manager or lead to an inconsistent state. Prefer `pipx` or virtual environments.
+
+##
 ## Udev Rules for Non-Root Access
 
 To use this tool without `sudo`, you need to set up udev rules to grant your user permission to access the keyboard's HID interface.
