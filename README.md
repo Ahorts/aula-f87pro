@@ -124,6 +124,9 @@ To use this tool without `sudo`, you need to set up udev rules to grant your use
 
 5.  Unplug and replug your Aula F87 Pro keyboard.
 
+
+* NOTE: If all else fails, you can add a NOPASSWD rule for script execution
+
 ## Usage
 
 The primary command is `aula-f87pro`.
