@@ -27,4 +27,4 @@ dependencies = [
 aula-f87pro = "f87pro.cli:main"
 
 [project.urls]
-"Homepage" = "https://github.com/Ahorts/aula-f87pro" # Optional
+"Homepage" = "https://github.com/Ahorts/aula-f87pro" 
