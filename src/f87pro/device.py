@@ -234,7 +234,7 @@ class AulaF87Pro:
         rgb_data_off = [0] * (self.num_leds * 3)
         return self.send_rgb(rgb_data_off)
         
-    def set_solid_color(self, r: int, g: int, b: int, duration: float = 0.0) -> bool:
+    def set_solid_color(self, r: int, g: int, b: int, duration: float = 0.0, should_stop=None) -> bool:
         """
         Sets all LEDs to a solid color.
         If duration is 0.0 (default), the color is persistent until interrupted.
@@ -252,8 +252,14 @@ class AulaF87Pro:
         if duration == 0.0: 
             try:
                 while True:
+                    if should_stop and should_stop():
+                        return True
                     self.send_rgb(rgb_data_initial)
-                    time.sleep(1) 
+                    # Check periodically (every 0.1s) to allow fast response, send keepalive every 1s
+                    for _ in range(10):
+                        if should_stop and should_stop():
+                            return True
+                        time.sleep(0.1)
             except KeyboardInterrupt:
                 print("\nDevice: Solid color effect interrupted by user.")
                 self.turn_off()
@@ -278,7 +284,7 @@ class AulaF87Pro:
         return True
         
     
-    def breathing_effect(self, r: int, g: int, b: int, duration: float = 0.0, base_rgb_data: list = None):
+    def breathing_effect(self, r: int, g: int, b: int, duration: float = 0.0, base_rgb_data: list = None, should_stop=None):
         
         import math 
         if base_rgb_data:
@@ -289,6 +295,9 @@ class AulaF87Pro:
         try:
             start_time = time.time()
             while True:
+                if should_stop and should_stop():
+                    break
+                    
                 current_elapsed_time = time.time() - start_time
                 
                 if duration != 0.0 and current_elapsed_time >= duration:
@@ -388,7 +397,7 @@ class AulaF87Pro:
                     rgb_data[key_idx * 3 + 2] = b
         return rgb_data
 
-    def set_pywal_gradient(self, colors: list, duration: float = 0.0) -> bool:
+    def set_pywal_gradient(self, colors: list, duration: float = 0.0, should_stop=None) -> bool:
         """Set keyboard rows to different pywal colors."""
         if not colors or len(colors) < 6:
             print("Error: Not enough pywal colors for gradient")
@@ -403,8 +412,14 @@ class AulaF87Pro:
         if duration == 0.0:
             try:
                 while True:
+                    if should_stop and should_stop():
+                        return True
                     self.send_rgb(rgb_data)
-                    time.sleep(1)
+                    # Check periodically (every 0.1s)
+                    for _ in range(10):
+                        if should_stop and should_stop():
+                            return True
+                        time.sleep(0.1)
             except KeyboardInterrupt:
                 print("\nDevice: Gradient effect interrupted.")
                 self.turn_off()

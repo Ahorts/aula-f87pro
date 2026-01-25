@@ -49,6 +49,21 @@ def get_background_color() -> Optional[Tuple[int, int, int]]:
         return None
     return colors[0]
 
+def check_file_changed(initial_mtime: float, path_str: str) -> bool:
+    """Check if file modification time has changed."""
+    try:
+        current_mtime = os.stat(path_str).st_mtime
+        return current_mtime != initial_mtime
+    except OSError:
+        return False
+
+def get_wal_file_mtime() -> float:
+    """Get the current mtime of the wal colors file."""
+    path = get_wal_colors_path()
+    if path.exists():
+         return os.stat(str(path)).st_mtime
+    return 0
+
 def get_foreground_color() -> Optional[Tuple[int, int, int]]:
     """Get the foreground color (color 7 or 15)."""
     colors = load_wal_colors()
