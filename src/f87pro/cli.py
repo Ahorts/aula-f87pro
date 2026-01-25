@@ -33,8 +33,8 @@ Examples:
     # Color commands
     parser.add_argument('--color', type=str,
                         help='Set solid color (hex: #FF0000, RGB: 255,0,0, or name: red)')
-    parser.add_argument('--breathing', type=str,
-                        help='Breathing effect with color (same formats as --color)')
+    parser.add_argument('--breathing', nargs='?', const='__pywal__', default=None,
+                        help='Breathing effect with color (same formats as --color). Color optional if --pywal is used.')
     parser.add_argument('--duration', type=float, default=10.0,
                         help='Duration for breathing effect in seconds (default: 10)')
     
@@ -113,14 +113,48 @@ def main():
                 return 1
         
         elif args.breathing:
+            r, g, b = 0, 0, 0
+            base_data = None
+            
+            if args.breathing == '__pywal__':
+                if args.pywal:
+                    colors = load_wal_colors()
+                    if not colors:
+                        print("Error: Could not load pywal colors from ~/.cache/wal/colors")
+                        return 1
+                    
+                    if args.pywal == 'gradient':
+                        base_data = keyboard.create_gradient_data(colors)
+                        if not base_data:
+                            print("Error: Not enough colors for gradient.")
+                            return 1
+                        print("Using pywal gradient for breathing effect.")
+                    else:
+                        if len(colors) > 1:
+                            r, g, b = colors[1]
+                        elif len(colors) > 0:
+                            r, g, b = colors[0]
+                        else:
+                            print("Error: Pywal color file is empty")
+                            return 1
+                        print(f"Using pywal accent color: RGB({r}, {g}, {b})")
+                else:
+                    print("Error: --breathing requires a color argument or --pywal flag.")
+                    return 1
+            else:
+                try:
+                    r, g, b = parse_color_input(args.breathing)
+                except ValueError as e:
+                    print(f"Error parsing color: {e}")
+                    return 1
+
             try:
-                r, g, b = parse_color_input(args.breathing)
-                print(f"Starting breathing effect: RGB({r}, {g}, {b}) for {args.duration} seconds...")
-                keyboard.breathing_effect(r, g, b, args.duration)
+                if base_data:
+                    keyboard.breathing_effect(0, 0, 0, args.duration, base_rgb_data=base_data)
+                else:
+                    print(f"Starting breathing effect: RGB({r}, {g}, {b}) for {args.duration} seconds...")
+                    keyboard.breathing_effect(r, g, b, args.duration)
                 print("Breathing effect completed.")
-            except ValueError as e:
-                print(f"Error parsing color: {e}")
-                return 1
             except KeyboardInterrupt:
                 print("\nBreathing effect stopped.")
                 keyboard.turn_off()

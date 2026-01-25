@@ -278,10 +278,13 @@ class AulaF87Pro:
         return True
         
     
-    def breathing_effect(self, r: int, g: int, b: int, duration: float = 0.0):
+    def breathing_effect(self, r: int, g: int, b: int, duration: float = 0.0, base_rgb_data: list = None):
         
         import math 
-        print(f"Device: Breathing effect RGB({r},{g},{b}), duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
+        if base_rgb_data:
+             print(f"Device: Breathing effect (Custom Pattern), duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
+        else:
+             print(f"Device: Breathing effect RGB({r},{g},{b}), duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
 
         try:
             start_time = time.time()
@@ -295,13 +298,23 @@ class AulaF87Pro:
                 brightness_speed_factor = 1.5 
                 brightness = (math.sin(current_elapsed_time * brightness_speed_factor) + 1) / 2
 
-                current_r = int(r * brightness)
-                current_g = int(g * brightness)
-                current_b = int(b * brightness)
-                
                 frame_rgb_data = []
-                for _ in range(self.num_leds):
-                    frame_rgb_data.extend([current_r, current_g, current_b])
+                
+                if base_rgb_data:
+                    for i in range(0, len(base_rgb_data), 3):
+                        if i + 2 < len(base_rgb_data):
+                            br = base_rgb_data[i]
+                            bg = base_rgb_data[i+1]
+                            bb = base_rgb_data[i+2]
+                            frame_rgb_data.extend([int(br * brightness), int(bg * brightness), int(bb * brightness)])
+                        else:
+                             frame_rgb_data.extend([0, 0, 0])
+                else:
+                    current_r = int(r * brightness)
+                    current_g = int(g * brightness)
+                    current_b = int(b * brightness)
+                    for _ in range(self.num_leds):
+                        frame_rgb_data.extend([current_r, current_g, current_b])
                 
                 if not self.send_rgb(frame_rgb_data):
                     print("Device Error: Failed to send frame for breathing effect. Stopping.")
@@ -351,28 +364,20 @@ class AulaF87Pro:
         print(f"Device: Setting pywal accent color RGB({r},{g},{b})")
         return self.set_solid_color(r, g, b, duration)
 
-    def set_pywal_gradient(self, colors: list, duration: float = 0.0) -> bool:
-        """Set keyboard rows to different pywal colors."""
+    def create_gradient_data(self, colors: list) -> list:
         if not colors or len(colors) < 6:
-            print("Error: Not enough pywal colors for gradient")
-            return False
-
-        # Map rows to colors (6 rows, use colors 1-6)
+             return None
+        
         row_colors = [colors[i] for i in range(1, 7)]
-
-        # Row boundaries based on KEY_INDICES layout
         rows = [
-            [0, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96],  # F-row
-            [1, 7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67, 73, 79, 85, 91, 97],  # Number row
-            [2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98],  # Tab row
-            [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 81],  # Caps row
-            [4, 10, 16, 22, 28, 34, 40, 46, 52, 58, 64, 82, 94],  # Shift row
-            [5, 11, 17, 35, 53, 59, 65, 83, 89, 95, 101],  # Bottom row
+            [0, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96],
+            [1, 7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67, 73, 79, 85, 91, 97],
+            [2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98],
+            [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 81],
+            [4, 10, 16, 22, 28, 34, 40, 46, 52, 58, 64, 82, 94],
+            [5, 11, 17, 35, 53, 59, 65, 83, 89, 95, 101],
         ]
-
-        print(f"Device: Setting pywal gradient, duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
-
-        # Build RGB data
+        
         rgb_data = [0] * (self.num_leds * 3)
         for row_idx, row_keys in enumerate(rows):
             r, g, b = row_colors[row_idx]
@@ -381,6 +386,19 @@ class AulaF87Pro:
                     rgb_data[key_idx * 3] = r
                     rgb_data[key_idx * 3 + 1] = g
                     rgb_data[key_idx * 3 + 2] = b
+        return rgb_data
+
+    def set_pywal_gradient(self, colors: list, duration: float = 0.0) -> bool:
+        """Set keyboard rows to different pywal colors."""
+        if not colors or len(colors) < 6:
+            print("Error: Not enough pywal colors for gradient")
+            return False
+
+        rgb_data = self.create_gradient_data(colors)
+        if not rgb_data:
+             return False
+
+        print(f"Device: Setting pywal gradient, duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
 
         if duration == 0.0:
             try:
