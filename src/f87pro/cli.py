@@ -2,6 +2,7 @@ import argparse
 import sys
 from .device import AulaF87Pro
 from .colors import parse_color_input, predefined_colors
+from .pywal import load_wal_colors
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -13,6 +14,8 @@ Examples:
   aula-f87pro --color "#FF0000"
   aula-f87pro --color "255,0,0"
   aula-f87pro --breathing blue --duration 30
+  aula-f87pro --pywal              # accent color from pywal
+  aula-f87pro --pywal gradient     # gradient with pywal colors
   aula-f87pro --test
   aula-f87pro --off
   aula-f87pro --find-interface
@@ -35,6 +38,11 @@ Examples:
     parser.add_argument('--duration', type=float, default=10.0,
                         help='Duration for breathing effect in seconds (default: 10)')
     
+    # Pywal integration
+    parser.add_argument('--pywal', nargs='?', const='solid', default=None,
+                        choices=['solid', 'gradient'],
+                        help='Use pywal colors (solid=accent, gradient=row colors)')
+
     # Utility commands
     parser.add_argument('--test', action='store_true',
                         help='Run RGB test sequence')
@@ -116,7 +124,25 @@ def main():
             except KeyboardInterrupt:
                 print("\nBreathing effect stopped.")
                 keyboard.turn_off()
-        
+
+        elif args.pywal:
+            colors = load_wal_colors()
+            if not colors:
+                print("Error: Could not load pywal colors from ~/.cache/wal/colors")
+                print("Make sure pywal is installed and you have run 'wal' at least once.")
+                return 1
+
+            print(f"Loaded {len(colors)} pywal colors")
+
+            if args.pywal == 'gradient':
+                print(f"Setting pywal gradient for {args.duration} seconds...")
+                keyboard.set_pywal_gradient(colors, args.duration)
+                print("Pywal gradient completed.")
+            else:
+                print(f"Setting pywal accent color for {args.duration} seconds...")
+                keyboard.set_pywal_solid(colors, args.duration)
+                print("Pywal solid completed.")
+
         else:
             print("No command specified. Use --help for available options.")
             return 1

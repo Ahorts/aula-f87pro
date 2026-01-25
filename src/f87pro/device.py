@@ -1,4 +1,4 @@
-import hid
+import hidraw as hid
 import time
 import os
 from typing import Optional
@@ -339,3 +339,68 @@ class AulaF87Pro:
         print("Device Test: Turning lights off.")
         self.turn_off()
         print("Device Test: Sequence completed.")
+
+    def set_pywal_solid(self, colors: list, duration: float = 0.0) -> bool:
+        """Set keyboard to pywal accent color."""
+        if not colors or len(colors) < 2:
+            print("Error: Not enough pywal colors")
+            return False
+
+        # Use accent color (color 1)
+        r, g, b = colors[1]
+        print(f"Device: Setting pywal accent color RGB({r},{g},{b})")
+        return self.set_solid_color(r, g, b, duration)
+
+    def set_pywal_gradient(self, colors: list, duration: float = 0.0) -> bool:
+        """Set keyboard rows to different pywal colors."""
+        if not colors or len(colors) < 6:
+            print("Error: Not enough pywal colors for gradient")
+            return False
+
+        # Map rows to colors (6 rows, use colors 1-6)
+        row_colors = [colors[i] for i in range(1, 7)]
+
+        # Row boundaries based on KEY_INDICES layout
+        rows = [
+            [0, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96],  # F-row
+            [1, 7, 13, 19, 25, 31, 37, 43, 49, 55, 61, 67, 73, 79, 85, 91, 97],  # Number row
+            [2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98],  # Tab row
+            [3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 81],  # Caps row
+            [4, 10, 16, 22, 28, 34, 40, 46, 52, 58, 64, 82, 94],  # Shift row
+            [5, 11, 17, 35, 53, 59, 65, 83, 89, 95, 101],  # Bottom row
+        ]
+
+        print(f"Device: Setting pywal gradient, duration: {'infinite' if duration == 0.0 else str(duration)+'s'}")
+
+        # Build RGB data
+        rgb_data = [0] * (self.num_leds * 3)
+        for row_idx, row_keys in enumerate(rows):
+            r, g, b = row_colors[row_idx]
+            for key_idx in row_keys:
+                if key_idx < self.num_leds:
+                    rgb_data[key_idx * 3] = r
+                    rgb_data[key_idx * 3 + 1] = g
+                    rgb_data[key_idx * 3 + 2] = b
+
+        if duration == 0.0:
+            try:
+                while True:
+                    self.send_rgb(rgb_data)
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("\nDevice: Gradient effect interrupted.")
+                self.turn_off()
+                raise
+        else:
+            try:
+                start_time = time.time()
+                while (time.time() - start_time) < duration:
+                    self.send_rgb(rgb_data)
+                    time.sleep(1)
+                self.turn_off()
+            except KeyboardInterrupt:
+                print("\nDevice: Gradient effect interrupted.")
+                self.turn_off()
+                raise
+
+        return True

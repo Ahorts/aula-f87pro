@@ -1,4 +1,4 @@
-# Aula F87 Pro CLI Controller
+# Aula F 87 Pro CLI Controller
 
 **DISCLAIMER: THIS PROJECT DOES NOT REVERSE ENGINEER THE COMPLETE COMMUNICATION PROTOCOL OF THE AULA F87 PRO KEYBOARD. IT IS A SIMPLE SCRIPT DESIGNED TO SEND RGB DATA TO THE KEYBOARD FOR LIGHTING CONTROL. CURRENTLY, THIS SCRIPT HAS NO CAPABILITY TO SAVE CONFIGURATIONS ON THE KEYBOARD ITSELF; ALL EFFECTS ARE APPLIED IN REAL-TIME VIA SOFTWARE.**
 
@@ -18,6 +18,7 @@ A command-line interface (CLI) tool to control the RGB lighting of the Aula F87 
 *   Manage configuration via `~/.aula_f87_config.json`.
 *   Parse color inputs in various formats (named colors, hex codes, RGB strings).
 *   List available predefined color names.
+*   **Pywal integration** - sync keyboard colors with your terminal/wallpaper color scheme.
 
 ## Typical Use Cases
 
@@ -135,3 +136,36 @@ The primary command is `aula-f87pro`.
 ```bash
 aula-f87pro --find-interface
 ```
+
+**Basic Usage:**
+```bash
+aula-f87pro --color red              # Set solid color
+aula-f87pro --color "#FF6600"        # Hex color
+aula-f87pro --breathing blue         # Breathing effect
+aula-f87pro --off                    # Turn off
+aula-f87pro --test                   # Test sequence
+```
+
+## Pywal Integration
+
+Sync your keyboard RGB with your pywal color scheme.
+
+**Usage:**
+```bash
+aula-f87pro --pywal                  # Use pywal accent color
+aula-f87pro --pywal gradient         # Each row gets a different pywal color
+```
+
+**Auto-sync with wal command:**
+
+Add this to your `~/.bashrc` or `~/.zshrc`:
+```bash
+wal() {
+    /usr/bin/wal "$@"
+    pkill -f "aula-f87pro" 2>/dev/null
+    nohup /path/to/aula-f87pro/.venv/bin/aula-f87pro --pywal --duration 0 >/dev/null 2>&1 &
+    disown
+}
+```
+
+Now every time you run `wal -i wallpaper.jpg`, your keyboard will automatically update to match.
