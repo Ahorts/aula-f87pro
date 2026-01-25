@@ -2,9 +2,10 @@ import argparse
 import sys
 import os
 import time
+import threading
 from .device import AulaF87Pro
 from .colors import parse_color_input, predefined_colors
-from .pywal import load_wal_colors, get_wal_colors_path, check_file_changed, get_wal_file_mtime
+from .pywal import load_wal_colors, WalFileWatcher
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -117,82 +118,85 @@ def main():
                 return 1
         
         elif args.breathing or args.pywal:
-            # Combined logic to handle watching for both breathing and static pywal modes
+            # State for watch mode - uses threading.Event for signaling
+            change_event = threading.Event()
+            stop_flag = threading.Event()
             
-            wal_path = get_wal_colors_path()
-            wal_path_str = str(wal_path)
-            last_mtime = get_wal_file_mtime()
-
-            # Callback closure
-            update_triggered = False
-            def should_stop_check():
-                nonlocal update_triggered
-                if args.watch and check_file_changed(last_mtime, wal_path_str):
-                    update_triggered = True
-                    return True # Stop current effect
-                return False
-
-            while True:
-                update_triggered = False
-                
-                # Load colors if potentially needed
-                colors = None
-                if args.pywal or (args.breathing == '__pywal__'):
-                    colors = load_wal_colors()
-                    if not colors and args.watch:
-                         # If file disappears or is empty, wait and retry
-                        time.sleep(1)
-                        continue
-                    elif not colors:
-                         print("Error: Could not load pywal colors.")
-                         return 1
-                
-                # Update mtime after load
-                last_mtime = get_wal_file_mtime()
-
-                # --- Breathing Logic ---
-                if args.breathing:
-                    r, g, b = 0, 0, 0
-                    base_data = None
-                    if args.breathing == '__pywal__':
-                        if args.pywal == 'gradient':
-                            base_data = keyboard.create_gradient_data(colors)
-                        else:
-                             if len(colors) > 1: r, g, b = colors[1]
-                             elif len(colors) > 0: r, g, b = colors[0]
-                    else:
-                        try:
-                            # Re-parse purely for safety in loop, though args static
-                            r, g, b = parse_color_input(args.breathing)
-                        except: pass 
-
-                    if base_data:
-                        print(f"Starting {'watched ' if args.watch else ''}breathing effect (Gradient)...")
-                        keyboard.breathing_effect(0, 0, 0, args.duration if not args.watch else 0, base_rgb_data=base_data, should_stop=should_stop_check)
-                    else:
-                        print(f"Starting {'watched ' if args.watch else ''}breathing effect RGB({r},{g},{b})...")
-                        keyboard.breathing_effect(r, g, b, args.duration if not args.watch else 0, should_stop=should_stop_check)
-
-                # --- Static Pywal Logic (if not breathing) ---
-                elif args.pywal:
-                    if args.pywal == 'gradient':
-                        print(f"Starting {'watched ' if args.watch else ''}pywal gradient...")
-                        keyboard.set_pywal_gradient(colors, args.duration if not args.watch else 0, should_stop=should_stop_check)
-                    else:
-                        # Solid accent
-                        if len(colors) > 1: r, g, b = colors[1]
-                        elif len(colors) > 0: r, g, b = colors[0]
-                        else: r,g,b = 255,255,255
-                        
-                        print(f"Starting {'watched ' if args.watch else ''}pywal solid RGB({r},{g},{b})...")
-                        keyboard.set_solid_color(r, g, b, args.duration if not args.watch else 0, should_stop=should_stop_check)
-                
-                # If we broke out of effect and it wasn't due to update, user interrupted or duration ended
-                if not args.watch or not update_triggered:
-                    break
-                
+            # Callback for the file watcher
+            def on_colors_changed():
                 print("Pywal colors changed. Reloading...")
-                time.sleep(0.5) # Debounce/wait for file write to complete
+                change_event.set()
+            
+            # Start watcher if in watch mode
+            watcher = None
+            if args.watch:
+                watcher = WalFileWatcher(on_change=on_colors_changed, debounce_seconds=1.0)
+                watcher.start()
+                print("Watching for pywal changes using inotify...")
+            
+            # Callback for effects to check if they should stop
+            def should_stop_check():
+                return change_event.is_set() or stop_flag.is_set()
+
+            try:
+                while True:
+                    change_event.clear()
+                    
+                    # Load colors if potentially needed
+                    colors = None
+                    if args.pywal or (args.breathing == '__pywal__'):
+                        colors = load_wal_colors()
+                        if not colors and args.watch:
+                            # If file disappears or is empty, wait and retry
+                            time.sleep(1)
+                            continue
+                        elif not colors:
+                            print("Error: Could not load pywal colors.")
+                            return 1
+
+                    # --- Breathing Logic ---
+                    if args.breathing:
+                        r, g, b = 0, 0, 0
+                        base_data = None
+                        if args.breathing == '__pywal__':
+                            if args.pywal == 'gradient':
+                                base_data = keyboard.create_gradient_data(colors)
+                            else:
+                                if len(colors) > 1: r, g, b = colors[1]
+                                elif len(colors) > 0: r, g, b = colors[0]
+                        else:
+                            try:
+                                r, g, b = parse_color_input(args.breathing)
+                            except: pass 
+
+                        if base_data:
+                            print(f"Starting {'watched ' if args.watch else ''}breathing effect (Gradient)...")
+                            keyboard.breathing_effect(0, 0, 0, args.duration if not args.watch else 0, base_rgb_data=base_data, should_stop=should_stop_check)
+                        else:
+                            print(f"Starting {'watched ' if args.watch else ''}breathing effect RGB({r},{g},{b})...")
+                            keyboard.breathing_effect(r, g, b, args.duration if not args.watch else 0, should_stop=should_stop_check)
+
+                    # --- Static Pywal Logic (if not breathing) ---
+                    elif args.pywal:
+                        if args.pywal == 'gradient':
+                            print(f"Starting {'watched ' if args.watch else ''}pywal gradient...")
+                            keyboard.set_pywal_gradient(colors, args.duration if not args.watch else 0, should_stop=should_stop_check)
+                        else:
+                            # Solid accent
+                            if len(colors) > 1: r, g, b = colors[1]
+                            elif len(colors) > 0: r, g, b = colors[0]
+                            else: r,g,b = 255,255,255
+                            
+                            print(f"Starting {'watched ' if args.watch else ''}pywal solid RGB({r},{g},{b})...")
+                            keyboard.set_solid_color(r, g, b, args.duration if not args.watch else 0, should_stop=should_stop_check)
+                    
+                    # If not watching, or we stopped for a reason other than file change, exit
+                    if not args.watch or not change_event.is_set():
+                        break
+                    
+            finally:
+                if watcher:
+                    watcher.stop()
 
         else:
             print("No command specified. Use --help for available options.")

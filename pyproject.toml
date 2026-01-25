@@ -23,6 +23,9 @@ dependencies = [
     "hidapi", 
 ]
 
+[project.optional-dependencies]
+watch = ["inotify"]  # For efficient file watching (recommended for --watch mode)
+
 [project.scripts]
 aula-f87pro = "f87pro.cli:main"
 
