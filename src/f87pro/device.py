@@ -79,9 +79,50 @@ class AulaF87Pro:
         self.num_leds = 102
         self.config_manager = ConfigManager(os.path.expanduser("~/.aula_f87_config.json"))
     
+    def auto_find_interface(self) -> Optional[str]:
+        """Automatically find RGB interface without user interaction."""
+        devices = hid.enumerate(self.VENDOR_ID, self.PRODUCT_ID)
+        if not devices:
+            return None
+
+        # Prefer interface with usage_page 0xff00 (vendor-specific, usually RGB)
+        for dev_info in devices:
+            if dev_info.get('usage_page') == 0xff00:
+                try:
+                    temp_device = hid.device()
+                    temp_device.open_path(dev_info['path'])
+                    # Test with a simple packet
+                    packet = [0x06, 0x08, 0x00, 0x00, 0x01, 0x00, 0x7a, 0x01]
+                    packet.extend([0] * (520 - len(packet)))
+                    temp_device.send_feature_report(packet)
+                    temp_device.close()
+
+                    path = dev_info['path'].decode('utf-8') if isinstance(dev_info['path'], bytes) else dev_info['path']
+                    self.config_manager.set('device_path', path)
+                    self.config_manager.set('vendor_id', self.VENDOR_ID)
+                    self.config_manager.set('product_id', self.PRODUCT_ID)
+                    return path
+                except:
+                    continue
+
+        # Fallback: try interface 1
+        for dev_info in devices:
+            if dev_info.get('interface_number') == 1:
+                try:
+                    temp_device = hid.device()
+                    temp_device.open_path(dev_info['path'])
+                    temp_device.close()
+                    path = dev_info['path'].decode('utf-8') if isinstance(dev_info['path'], bytes) else dev_info['path']
+                    self.config_manager.set('device_path', path)
+                    return path
+                except:
+                    continue
+
+        return None
+
     def find_working_interface(self) -> Optional[str]:
         print("Searching for working RGB interface...")
-        
+
         devices = hid.enumerate(self.VENDOR_ID, self.PRODUCT_ID)
         if not devices:
             print("No Aula F87 Pro devices found.")
@@ -91,7 +132,7 @@ class AulaF87Pro:
             if i == 0:  # Typically keyboard input interface
                 print(f"Skipping interface {i} (likely keyboard input).")
                 continue
-            
+
             print(f"\nTesting interface {i}...")
             print(f"  Path: {dev_info['path']}")
             print(f"  Interface: {dev_info.get('interface_number', 'N/A')}")
@@ -169,16 +210,20 @@ class AulaF87Pro:
             return False
 
     def connect(self, force_find: bool = False) -> bool:
-        
+
         if not force_find and not self.device_path:
             saved_path = self.config_manager.get('device_path')
             if saved_path and self.verify_saved_interface(saved_path):
                 self.device_path = saved_path
-        
+
         if force_find or not self.device_path:
-            self.device_path = self.find_working_interface()
+            # Try auto-detection first (non-interactive)
+            self.device_path = self.auto_find_interface()
             if not self.device_path:
-                return False
+                # Fall back to interactive search
+                self.device_path = self.find_working_interface()
+                if not self.device_path:
+                    return False
         
         try:
             self.device = hid.device()
