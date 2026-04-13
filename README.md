@@ -1,6 +1,6 @@
 # Aula F 87 Pro CLI Controller
 ## UPDATE
-This project may no longer be needed since support for the functionalities offered by this project has now be added to openRGB. 
+This project may no longer be needed since the functionalities offered by this project have now be added to openRGB. 
 
 ## DISCLAIMER
 **THIS PROJECT DOES NOT REVERSE ENGINEER THE COMPLETE COMMUNICATION PROTOCOL OF THE AULA F87 PRO KEYBOARD. IT IS A SIMPLE SCRIPT DESIGNED TO SEND RGB DATA TO THE KEYBOARD FOR LIGHTING CONTROL. CURRENTLY, THIS SCRIPT HAS NO CAPABILITY TO SAVE CONFIGURATIONS ON THE KEYBOARD ITSELF; ALL EFFECTS ARE APPLIED IN REAL-TIME VIA SOFTWARE.**
